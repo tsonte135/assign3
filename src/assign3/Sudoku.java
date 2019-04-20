@@ -2,6 +2,8 @@ package assign3;
 
 import java.util.*;
 
+
+
 /*
  * Encapsulates a Sudoku grid to be solved.
  * CS108 Stanford.
@@ -10,56 +12,78 @@ public class Sudoku {
 	// Provided grid data for main/testing
 	// The instance variable strategy is up to you.
 	
+	private Sudoku sudoku;
 	private int[][] grid;
+	private int[][] tmpGrid;
+	private ArrayList<Spot> spotList;
+	private String solutionText;
+	private int result;
+	private long time;
 	
-	private class spot{
+	private class Spot implements Comparable{
 		
-		public int row, col;
-		public Set<Integer> possibleNumbers;
+		private int row, col, value, numOfPossDigits;
+		private Set<Integer> possibleNumbers;
 		
-		public spot(int spotRow, int spotCol){
+		
+		public Spot(int spotRow, int spotCol){
 			row = spotRow;
 			col = spotCol;
+			numOfPossDigits = possibleNumSet().size();
+			value = grid[row][col];
+		}
+
+		public Set<Integer> possibleNumSet(){
 			possibleNumbers = new HashSet<Integer>();
 			for(int i = 1; i <= SIZE; i++){
 				possibleNumbers.add(i);
 			}
 			
-			for(int j = col; j < grid[0].length; j++){
-				if(possibleNumbers.contains(grid[row][j])){
-					possibleNumbers.remove(grid[row][j]);
+			for(int j = 0; j < tmpGrid[0].length; j++){
+				if(possibleNumbers.contains(tmpGrid[row][j])){
+					possibleNumbers.remove(tmpGrid[row][j]);
 				}
 			}
 			
-			for(int i = row; i < grid.length; i++){
-				if(possibleNumbers.contains(grid[i][col])){
-					possibleNumbers.remove(grid[i][col]);
+			for(int i = 0; i < tmpGrid.length; i++){
+				if(possibleNumbers.contains(tmpGrid[i][col])){
+					possibleNumbers.remove(tmpGrid[i][col]);
 				}
 			}
 			
-			for(int row = -1; row <=1 ; row++){
-				for(int col = -1; col <=1; col++){
-					if(!(i + row < 0 || i + row >= grid[0].length
-							|| j < 0 || j > grid.length)){
-						if(cell.possibleNumbers.contains(grid[row][col])){
-							cell.possibleNumbers.remove(grid[row][col]);
-						}
+			int squareRow = row / PART * PART;
+			int squareCol = col / PART * PART;
+			
+			for(int i = squareRow;  i < squareRow + PART; i++){
+				for(int j = squareCol; j < squareCol + PART; j++){
+					if(possibleNumbers.contains(tmpGrid[i][j])){
+						possibleNumbers.remove(tmpGrid[i][j]);
 					}
 				}
 			}
+			return possibleNumbers;
 		}
-	}
-
 		
 		public void set(int spotInt){
-			grid[row][col] = spotInt;
+			tmpGrid[row][col] = spotInt;
 		}
 		
-		public int getSpotNum(int i, int j){
-			return grid[i][j];
-		}
-		
+		@Override
+		public int compareTo(Object o) {
+	        Spot cell = (Spot)o;
+
+	        if(this.numOfPossDigits == cell.numOfPossDigits){
+	        	return 0;    	
+	        }else{
+	        	if(this.numOfPossDigits < cell.numOfPossDigits){
+	        		return -1;
+	        	}else{
+	        		return 1;
+	        	}
+	        }
+	    }		
 	}
+	
 	// Provided easy 1 6 grid
 	// (can paste this text into the GUI too)
 	public static final int[][] easyGrid = Sudoku.stringsToGrid(
@@ -176,7 +200,7 @@ public class Sudoku {
 	// solving hardGrid.
 	public static void main(String[] args) {
 		Sudoku sudoku;
-		sudoku = new Sudoku(hardGrid);
+		sudoku = new Sudoku(mediumGrid);
 		
 		System.out.println(sudoku); // print the raw problem
 		int count = sudoku.solve();
@@ -194,31 +218,92 @@ public class Sudoku {
 	public Sudoku(int[][] ints) {
 		grid = new int[SIZE][SIZE];
 		grid = ints;
+		tmpGrid = new int[SIZE][SIZE];
+		spotList = new ArrayList<Spot>();
 		
+		for(int i = 0; i < tmpGrid.length; i++){
+			for(int j = 0; j < tmpGrid[0].length; j++){
+				tmpGrid[i][j] = grid[i][j];
+			}
+		}
 		for(int i = 0; i < grid.length; i++){
 			for(int j = 0; j < grid[0].length; j++){
 				if(grid[i][j] == 0){
-					spot cell = new spot(i, j);
+					Spot cell = new Spot(i, j);
+					spotList.add(cell);
 				}
 			}
 		}
+
+		Collections.sort(spotList);
 	}
 	
+	public Sudoku(String text){
+		this(textToGrid(text));
+	}
 	
+	@Override
+	public String toString(){
+		StringBuilder buff = new StringBuilder();
+		
+		for(int i = 0; i < grid.length; i++){
+			for(int j = 0; j < grid[0].length; j++){
+				buff.append(grid[i][j]);
+				if(j != grid[0].length - 1){
+					buff.append(" ");
+				}	
+			}
+			buff.append("\n");
+		}
+		return buff.toString();
+	
+	}
 	
 	/**
 	 * Solves the puzzle, invoking the underlying recursive search.
 	 */
 	public int solve() {
-		return 0; // YOUR CODE HERE
+		result = 0;
+		long start = System.currentTimeMillis();
+		rec(0);
+		long finish = System.currentTimeMillis();
+		time = finish - start;
+		return result; 
+	}
+	
+	private void rec(int ind){
+		if(result >= MAX_SOLUTIONS){
+			return;
+		}
+		
+		if(ind == spotList.size()){
+			if(result == 0) {
+				Sudoku res = new Sudoku(tmpGrid);
+				solutionText = res.toString();
+				
+			}
+			result++;
+			return;
+		}
+		
+		Spot curr = spotList.get(ind);
+		Set<Integer> assignDigits = curr.possibleNumSet();
+		for(int j : assignDigits){
+			curr.set(j);
+			rec(ind + 1);
+			curr.set(0);
+		}
 	}
 	
 	public String getSolutionText() {
-		return ""; // YOUR CODE HERE
+		if(result == 0){
+			return " ";
+		}
+		return solutionText;
 	}
 	
 	public long getElapsed() {
-		return 0; // YOUR CODE HERE
+		return time;
 	}
 
 }
