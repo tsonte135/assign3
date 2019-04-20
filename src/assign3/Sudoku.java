@@ -200,7 +200,7 @@ public class Sudoku {
 	// solving hardGrid.
 	public static void main(String[] args) {
 		Sudoku sudoku;
-		sudoku = new Sudoku(mediumGrid);
+		sudoku = new Sudoku(hardGrid);
 		
 		System.out.println(sudoku); // print the raw problem
 		int count = sudoku.solve();
